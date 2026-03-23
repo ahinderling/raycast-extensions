@@ -1,7 +1,7 @@
 {
   "$schema": "https://www.raycast.com/schemas/extension.json",
   "name": "duden",
-  "title": "duden",
+  "title": "Duden",
   "description": "Search German words on Duden.de dictionary",
   "icon": "dudenicon.png",
   "author": "c76b7srxxm",

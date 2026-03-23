@@ -28,7 +28,7 @@ function isCacheValid<T>(entry: CacheEntry<T>): boolean {
 function getFromCache<T>(key: string): T | null {
   const entry = cache.get(key);
   if (entry && isCacheValid(entry)) {
-    return entry.data;
+    return entry.data as T;
   }
   // Remove expired entries
   if (entry) {
