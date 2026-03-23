@@ -3,18 +3,18 @@
  */
 
 import { useState, useEffect } from "react";
-import { List, ActionPanel, Action, Icon, showToast, Toast } from "@raycast/api";
+import { List, ActionPanel, Action, Icon, showToast, Toast, useNavigation } from "@raycast/api";
 import { searchAndGetDetails, getWordDetails } from "./api/duden";
-import { SearchResult, DudenWord } from "./types/duden";
+import { SearchResult } from "./types/duden";
 import WordDetails from "./components/WordDetails";
 
 export default function SearchDuden() {
   const [searchText, setSearchText] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedWord, setSelectedWord] = useState<DudenWord | null>(null);
+  const { push } = useNavigation();
 
-  // Handle search with debouncing and minimum character requirement
+  // Handle search with minimum character requirement
   useEffect(() => {
     if (searchText.length < 3) {
       setSearchResults([]);
@@ -23,17 +23,15 @@ export default function SearchDuden() {
 
     setIsLoading(true);
 
-    const searchTimeout = setTimeout(async () => {
+    const performSearch = async () => {
       try {
         const { results, singleWord } = await searchAndGetDetails(searchText);
 
         setSearchResults(results);
 
-        // If single result, show details immediately as discussed
+        // If single result, push details immediately as discussed
         if (singleWord) {
-          setSelectedWord(singleWord);
-        } else {
-          setSelectedWord(null);
+          push(<WordDetails word={singleWord} />);
         }
       } catch (error) {
         console.error("Search failed:", error);
@@ -43,13 +41,12 @@ export default function SearchDuden() {
           message: error instanceof Error ? error.message : "Unknown error",
         });
         setSearchResults([]);
-        setSelectedWord(null);
       } finally {
         setIsLoading(false);
       }
-    }, 300); // 300ms debounce
+    };
 
-    return () => clearTimeout(searchTimeout);
+    performSearch();
   }, [searchText]);
 
   // Handle word selection from search results
@@ -57,7 +54,7 @@ export default function SearchDuden() {
     setIsLoading(true);
     try {
       const word = await getWordDetails(result.urlname);
-      setSelectedWord(word);
+      push(<WordDetails word={word} />);
     } catch (error) {
       console.error("Failed to load word details:", error);
       await showToast({
@@ -70,12 +67,6 @@ export default function SearchDuden() {
     }
   };
 
-  // If we have a selected word, show details
-  if (selectedWord) {
-    return <WordDetails word={selectedWord} />;
-  }
-
-  // Otherwise show search interface
   return (
     <List
       isLoading={isLoading}
