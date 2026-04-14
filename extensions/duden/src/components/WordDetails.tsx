@@ -19,8 +19,9 @@ export default function WordDetails({ word }: WordDetailsProps) {
   }
 
   if (word.frequency !== undefined) {
-    const stars = "★".repeat(word.frequency) + "☆".repeat(5 - word.frequency);
-    markdown += `**Häufigkeit:** ${stars} (${word.frequency}/5)\n\n`;
+    const freq = Math.min(5, Math.max(0, word.frequency));
+    const stars = "★".repeat(freq) + "☆".repeat(5 - freq);
+    markdown += `**Häufigkeit:** ${stars} (${freq}/5)\n\n`;
   }
 
   if (word.usage) {
