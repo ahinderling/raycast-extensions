@@ -42,19 +42,3 @@ export interface SearchResult {
   /** Part of speech for preview */
   partOfSpeech?: string;
 }
-
-export interface DudenApiError {
-  /** Error type */
-  type: "network" | "not_found" | "parse_error";
-  /** Error message */
-  message: string;
-}
-
-export interface CacheEntry<T> {
-  /** Cached data */
-  data: T;
-  /** Timestamp when cached */
-  timestamp: number;
-  /** TTL in milliseconds */
-  ttl: number;
-}

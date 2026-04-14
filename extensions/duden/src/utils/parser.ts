@@ -193,8 +193,7 @@ export function parseWordDetails(html: string): DudenWord | null {
       alternativeSpellings,
       examples,
     };
-  } catch (error) {
-    console.error("Error parsing word details:", error);
+  } catch {
     return null;
   }
 }
@@ -246,8 +245,8 @@ export function parseSearchResults(html: string): SearchResult[] {
         }
       }
     });
-  } catch (error) {
-    console.error("Error parsing search results:", error);
+  } catch {
+    // Silently ignore parsing errors
   }
 
   return results;

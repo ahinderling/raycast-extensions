@@ -3,7 +3,8 @@
  * Based on endpoints from the Python duden project
  */
 
-import { DudenWord, SearchResult, CacheEntry } from "../types/duden";
+import { Cache } from "@raycast/api";
+import { DudenWord, SearchResult } from "../types/duden";
 import { parseWordDetails, parseSearchResults } from "../utils/parser";
 
 const BASE_URL = "https://www.duden.de";
@@ -12,40 +13,40 @@ const SEARCH_URL = `${BASE_URL}/suchen/dudenonline`;
 const REQUEST_TIMEOUT = 10000; // 10 seconds
 const CACHE_TTL = 30 * 60 * 1000; // 30 minutes
 
-// Simple in-memory cache
-const cache = new Map<string, CacheEntry<unknown>>();
-
-/**
- * Check if cache entry is still valid
- */
-function isCacheValid<T>(entry: CacheEntry<T>): boolean {
-  return Date.now() - entry.timestamp < entry.ttl;
-}
+// Use Raycast's built-in cache
+const cache = new Cache();
 
 /**
  * Get data from cache if valid
  */
 function getFromCache<T>(key: string): T | null {
-  const entry = cache.get(key);
-  if (entry && isCacheValid(entry)) {
-    return entry.data as T;
+  const cached = cache.get(key);
+  if (!cached) return null;
+
+  try {
+    const parsed = JSON.parse(cached);
+    // Check if cache is expired
+    if (Date.now() - parsed.timestamp > CACHE_TTL) {
+      cache.remove(key);
+      return null;
+    }
+    return parsed.data as T;
+  } catch {
+    return null;
   }
-  // Remove expired entries
-  if (entry) {
-    cache.delete(key);
-  }
-  return null;
 }
 
 /**
  * Store data in cache
  */
 function setCache<T>(key: string, data: T): void {
-  cache.set(key, {
-    data,
-    timestamp: Date.now(),
-    ttl: CACHE_TTL,
-  });
+  cache.set(
+    key,
+    JSON.stringify({
+      data,
+      timestamp: Date.now(),
+    }),
+  );
 }
 
 /**
@@ -117,7 +118,6 @@ export async function searchWords(query: string): Promise<SearchResult[]> {
       // Return empty array for 404s as discussed
       return [];
     }
-    console.error("Search error:", error);
     throw error;
   }
 }
@@ -132,21 +132,16 @@ export async function getWordDetails(urlname: string): Promise<DudenWord> {
     return cached;
   }
 
-  try {
-    const url = `${WORD_URL}/${encodeURIComponent(urlname)}`;
-    const html = await makeRequest(url);
-    const word = parseWordDetails(html);
+  const url = `${WORD_URL}/${encodeURIComponent(urlname)}`;
+  const html = await makeRequest(url);
+  const word = parseWordDetails(html);
 
-    if (!word) {
-      throw new Error("Failed to parse word details");
-    }
-
-    setCache(cacheKey, word);
-    return word;
-  } catch (error) {
-    console.error("Word details error:", error);
-    throw error;
+  if (!word) {
+    throw new Error("Failed to parse word details");
   }
+
+  setCache(cacheKey, word);
+  return word;
 }
 
 /**
@@ -161,19 +156,11 @@ export async function searchAndGetDetails(query: string): Promise<{ results: Sea
     try {
       const singleWord = await getWordDetails(results[0].urlname);
       return { results, singleWord };
-    } catch (error) {
+    } catch {
       // If details fetch fails, just return the search result
-      console.error("Failed to fetch details for single result:", error);
       return { results };
     }
   }
 
   return { results };
-}
-
-/**
- * Clear cache (useful for testing or manual refresh)
- */
-export function clearCache(): void {
-  cache.clear();
 }

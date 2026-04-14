@@ -21,32 +21,42 @@ export default function SearchDuden() {
       return;
     }
 
+    let isCancelled = false;
     setIsLoading(true);
 
     const performSearch = async () => {
       try {
         const { results, singleWord } = await searchAndGetDetails(searchText);
 
-        setSearchResults(results);
+        if (!isCancelled) {
+          setSearchResults(results);
 
-        // If single result, push details immediately as discussed
-        if (singleWord) {
-          push(<WordDetails word={singleWord} />);
+          // If single result, push details immediately as discussed
+          if (singleWord) {
+            push(<WordDetails word={singleWord} />);
+          }
         }
       } catch (error) {
-        console.error("Search failed:", error);
-        await showToast({
-          style: Toast.Style.Failure,
-          title: "Search failed",
-          message: error instanceof Error ? error.message : "Unknown error",
-        });
-        setSearchResults([]);
+        if (!isCancelled) {
+          await showToast({
+            style: Toast.Style.Failure,
+            title: "Search failed",
+            message: error instanceof Error ? error.message : "Unknown error",
+          });
+          setSearchResults([]);
+        }
       } finally {
-        setIsLoading(false);
+        if (!isCancelled) {
+          setIsLoading(false);
+        }
       }
     };
 
     performSearch();
+
+    return () => {
+      isCancelled = true;
+    };
   }, [searchText]);
 
   // Handle word selection from search results
@@ -56,7 +66,6 @@ export default function SearchDuden() {
       const word = await getWordDetails(result.urlname);
       push(<WordDetails word={word} />);
     } catch (error) {
-      console.error("Failed to load word details:", error);
       await showToast({
         style: Toast.Style.Failure,
         title: "Failed to load word details",
