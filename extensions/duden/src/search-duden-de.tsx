@@ -18,6 +18,7 @@ export default function SearchDuden() {
   useEffect(() => {
     if (searchText.length < 3) {
       setSearchResults([]);
+      setIsLoading(false);
       return;
     }
 
